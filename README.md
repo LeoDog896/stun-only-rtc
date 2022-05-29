@@ -1,5 +1,7 @@
 # stun-only-rtc
 
+Check it out: Open two tabs with https://leodog896.github.io/stun-only-rtc/ on both of them, and have one be BOB, the other be ALICE.
+
 Cleanup of https://github.com/xem/miniWebRTC.
 
 Serverless* WebRTC. Enables browsers to commincate with each other without the need for a costly server.
