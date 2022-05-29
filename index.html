@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>miniWebRTC</title>
+
+<div id="createRoom">
+  <h3>Create or join a room?</h3>
+  <button id="createBtn">BOB: Create</button>
+  <button id="joinBtn">ALICE: Join</button>
+</div>
+
+<div id="bobPrompt">
+  <h3 id="myModalLabel">BOB: Send your local offer to ALICE</h3>
+  <input id="localOffer">
+  <br>
+  <h3>Then, paste the "answer" you received</h3>
+  <input id="remoteAnswer">
+  <br>
+  <br>
+  <button id="answerRecdBtn">Okay, I pasted it.</button>
+</div>
+
+<div id="alicePrompt">
+  <h3>ALICE: Paste the "offer" you received</h3>
+  <input id="remoteOffer">
+  <br>
+  <br>
+  <button id="offerRecdBtn">Okay, I pasted it.</button>
+  <h3>Then, send your local answer to BOB</h3>
+  <input id="localAnswer">
+</div>
+
+<div id="chatPrompt">
+  <h1>Chat</h1>
+  <br>
+  <div id="chatlog" style="height:200px; overflow:auto; border:1px solid"></div>
+  <br>
+  <input type="text" id="messageTextBox" placeholder="Type your message here">
+  <button onclick="sendMessage()">Send message</button>
+</div>
+
+<script>
+  const config = { 'iceServers': [{ 'url': "stun:stun.gmx.net" }] };
+  const connection = { 'optional': [{ 'DtlsSrtpKeyAgreement': true }] };
+  const sdpConstraints = {
+    optional: [],
+  }
+
+  // The local browser's RTCPeerConnection
+  const peerConnection = new RTCPeerConnection(config, connection)
+
+  let activedc;
+
+  function sendMessage() {
+    if (messageTextBox.value) {
+      activedc.send(JSON.stringify({ message: messageTextBox.value }));
+      chatlog.innerHTML += `[${new Date()}] ${messageTextBox.value}</p>`;
+      messageTextBox.value = "";
+    }
+  }
+  
+  /**
+   * Shows one of the 4 div elements in the webpage, and hides the rest.
+   * 
+   * @param {part} part The part to show.
+   */
+  function showPart(part) {
+    const divList = [createRoom, bobPrompt, alicePrompt, chatPrompt]
+
+    // Hide all elements that are not part
+    divList.filter(div => div != part).forEach(div => div.style.display = "none");
+
+    // Show the part
+    part.style.display = "block";
+  }
+
+  showPart(createRoom);
+
+  // BOB: create
+  createBtn.onclick = function() {
+
+    showPart(bobPrompt);
+
+    const dataChannel = peerConnection.createDataChannel('test', { reliable: true })
+    
+    activedc = dataChannel;
+
+    peerConnection.createOffer(peerConnection.setLocalDescription, () => void 0, sdpConstraints)
+
+    // Once all ice candidates are collected, set the value
+    peerConnection.addEventListener("icecandidate", e => {
+      if (e.candidate == null) {
+        localOffer.value = JSON.stringify(peerConnection.localDescription);
+      }
+    })
+
+    // BOB: pasted Alice's answer
+    answerRecdBtn.onclick = function () {
+      const answer = remoteAnswer.value;
+      const answerDesc = new RTCSessionDescription(JSON.parse(answer))
+      peerConnection.setRemoteDescription(answerDesc);
+      showPart(chatPrompt);
+    };
+
+    dataChannel.addEventListener("message", e => {
+      const data = JSON.parse(e.data)
+      chatlog.innerHTML += `[${new Date()}] ${data.message}</p>`;
+      chatlog.scrollTop = chatlog.scrollHeight
+    })
+  };
+
+  // ALICE: create
+  joinBtn.onclick = function() {
+
+    showPart(alicePrompt);
+
+    // ALICE: pasted Bob's answer
+    offerRecdBtn.onclick = function() {
+      const offer = remoteOffer.value;
+      const offerDesc = new RTCSessionDescription(JSON.parse(offer))
+      peerConnection.setRemoteDescription(offerDesc)
+      peerConnection.createAnswer(peerConnection.setLocalDescription, () => void 0, sdpConstraints)
+    };
+
+    peerConnection.addEventListener("datachannel", (e) => {
+      showPart(chatPrompt);
+      const dataChannel = e.channel;
+      activedc = dataChannel;
+      dataChannel.addEventListener("message", e => {
+        const data = JSON.parse(e.data)
+        chatlog.innerHTML += `[${new Date()}] ${data.message}</p>`;
+        chatlog.scrollTop = chatlog.scrollHeight
+      })
+    })
+
+    peerConnection.addEventListener("icecandidate", e => {
+      if (e.candidate == null) {
+        localAnswer.value = JSON.stringify(peerConnection.localDescription);
+      }
+    })
+  }
+</script>
