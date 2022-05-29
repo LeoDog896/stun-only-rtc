@@ -9,7 +9,7 @@
 </div>
 
 <div id="bobPrompt">
-  <h3 id="myModalLabel">BOB: Send your local offer to ALICE</h3>
+  <h3>BOB: Send your local offer to ALICE</h3>
   <input id="localOffer">
   <br>
   <h3>Then, paste the "answer" you received</h3>
@@ -39,20 +39,18 @@
 </div>
 
 <script>
-  const config = { 'iceServers': [{ 'url': "stun:stun.gmx.net" }] };
-  const connection = { 'optional': [{ 'DtlsSrtpKeyAgreement': true }] };
-  const sdpConstraints = {
-    optional: [],
-  }
+  // @ts-check
+  const config = { iceServers: [{ url: "stun:stun.gmx.net" }] };
 
   // The local browser's RTCPeerConnection
-  const peerConnection = new RTCPeerConnection(config, connection)
+  const peerConnection = new RTCPeerConnection(config)
 
-  let activedc;
+  /** @type {RTCDataChannel | null} data channel */
+  let activeDataChannel = null;
 
   function sendMessage() {
     if (messageTextBox.value) {
-      activedc.send(JSON.stringify({ message: messageTextBox.value }));
+      activeDataChannel.send(JSON.stringify({ message: messageTextBox.value }));
       chatlog.innerHTML += `[${new Date()}] ${messageTextBox.value}</p>`;
       messageTextBox.value = "";
     }
@@ -75,67 +73,68 @@
 
   showPart(createRoom);
 
-  // BOB: create
-  createBtn.onclick = function() {
+  // BOB: create room
+  createBtn.addEventListener("click", async () => {
 
     showPart(bobPrompt);
 
-    const dataChannel = peerConnection.createDataChannel('test', { reliable: true })
+    const dataChannel = peerConnection.createDataChannel('chat');
     
-    activedc = dataChannel;
+    activeDataChannel = dataChannel;
 
-    peerConnection.createOffer(peerConnection.setLocalDescription, () => void 0, sdpConstraints)
+    peerConnection.setLocalDescription(await peerConnection.createOffer())
 
     // Once all ice candidates are collected, set the value
-    peerConnection.addEventListener("icecandidate", e => {
-      if (e.candidate == null) {
+    peerConnection.addEventListener("icecandidate", ({ candidate }) => {
+      if (candidate == null) {
         localOffer.value = JSON.stringify(peerConnection.localDescription);
       }
     })
 
     // BOB: pasted Alice's answer
-    answerRecdBtn.onclick = function () {
+    answerRecdBtn.addEventListener("click", async () => {
       const answer = remoteAnswer.value;
       const answerDesc = new RTCSessionDescription(JSON.parse(answer))
-      peerConnection.setRemoteDescription(answerDesc);
+      await peerConnection.setRemoteDescription(answerDesc);
       showPart(chatPrompt);
-    };
+    }, { once: true });
 
+    // ALICE sent a message to BOB
     dataChannel.addEventListener("message", e => {
       const data = JSON.parse(e.data)
       chatlog.innerHTML += `[${new Date()}] ${data.message}</p>`;
       chatlog.scrollTop = chatlog.scrollHeight
     })
-  };
+  });
 
-  // ALICE: create
-  joinBtn.onclick = function() {
+  // ALICE: listen to room
+  joinBtn.addEventListener("click", () => {
 
     showPart(alicePrompt);
 
     // ALICE: pasted Bob's answer
-    offerRecdBtn.onclick = function() {
+    offerRecdBtn.addEventListener("click", async () => {
       const offer = remoteOffer.value;
       const offerDesc = new RTCSessionDescription(JSON.parse(offer))
-      peerConnection.setRemoteDescription(offerDesc)
-      peerConnection.createAnswer(peerConnection.setLocalDescription, () => void 0, sdpConstraints)
-    };
+      await peerConnection.setRemoteDescription(offerDesc)
+      peerConnection.setLocalDescription(await peerConnection.createAnswer())
+      peerConnection.addEventListener("icecandidate", e => {
+        if (e.candidate == null) {
+          localAnswer.value = JSON.stringify(peerConnection.localDescription);
+        }
+      })
+    }, { once: true });
 
-    peerConnection.addEventListener("datachannel", (e) => {
+    // BOB has connected with ALICE
+    peerConnection.addEventListener("datachannel", ({ channel }) => {
       showPart(chatPrompt);
-      const dataChannel = e.channel;
-      activedc = dataChannel;
-      dataChannel.addEventListener("message", e => {
+      activeDataChannel = channel;
+      // BOB sent a message to ALICE
+      channel.addEventListener("message", e => {
         const data = JSON.parse(e.data)
         chatlog.innerHTML += `[${new Date()}] ${data.message}</p>`;
         chatlog.scrollTop = chatlog.scrollHeight
       })
     })
-
-    peerConnection.addEventListener("icecandidate", e => {
-      if (e.candidate == null) {
-        localAnswer.value = JSON.stringify(peerConnection.localDescription);
-      }
-    })
-  }
+  });
 </script>
