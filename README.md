@@ -17,6 +17,9 @@ Serverless* WebRTC. Enables browsers to commincate with each other without the n
 ## Code explanation
 
 ```ts
+// Use any stun server you want!
+const config = { iceServers: [{ url: "stun:stun.gmx.net" }] };
+
 // Your local peer connection
 const peerConnection = new RTCPeerConnection(config)
 
