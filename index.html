@@ -40,7 +40,7 @@
 
 <script>
   // @ts-check
-  const config = { iceServers: [{ url: "stun:stun1.l.google.com:19305" }] };
+  const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
   // The local browser's RTCPeerConnection
   const peerConnection = new RTCPeerConnection(config)
@@ -132,7 +132,7 @@
   }, { once: true });
 
   peerConnection.addEventListener("connectionstatechange", e => {
-    if (peerConnection.connectionState === 'connected') {
+    if (peerConnection.connectionState === "connected") {
       showPart(chatPrompt);
     }
   })
