@@ -101,6 +101,13 @@
       chatlog.innerHTML += `<span>THEM: ${data.message}</span><br/>`;
       chatlog.scrollTop = chatlog.scrollHeight
     })
+
+    peerConnection.addEventListener("connectionstatechange", e => {
+      if (peerConnection.connectionState === "connected") {
+        // Connected!
+        showPart(chatPrompt);
+      }
+    })
   }, { once: true });
 
   // ALICE: listen to room
@@ -122,6 +129,7 @@
     }, { once: true });
     
     peerConnection.addEventListener("datachannel", ({ channel }) => {
+      // Connected!
       activeDataChannel = channel;
       showPart(chatPrompt);
       activeDataChannel.addEventListener("message", e => {
@@ -131,10 +139,4 @@
       })
     })
   }, { once: true });
-
-  peerConnection.addEventListener("connectionstatechange", e => {
-    if (peerConnection.connectionState === "connected") {
-      showPart(chatPrompt);
-    }
-  })
 </script>

@@ -18,13 +18,16 @@ Serverless* WebRTC. Enables browsers to commincate with each other without the n
 
 ```ts
 // Use any stun server you want!
-const config = { iceServers: [{ url: "stun:stun1.l.google.com:19305" }] };
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 // Your local peer connection
 const peerConnection = new RTCPeerConnection(config)
 
 // If this is bob (initializer)
 /* ... */ {
+  // Create a data channel
+  const dataChannel = peerConnection.createDataChannel('chat');
+
   peerConnection.setLocalDescription(await peerConnection.createOffer())
 
   peerConnection.addEventListener("icecandidate", ({ candidate }) => {
@@ -38,8 +41,14 @@ const peerConnection = new RTCPeerConnection(config)
   when("bob receives the answer", async (answer: string) => {
     const answerDesc = new RTCSessionDescription(JSON.parse(answer))
     await peerConnection.setRemoteDescription(answerDesc);
-    // CONNECTED!
   });
+
+  peerConnection.addEventListener("connectionstatechange", e => {
+    if (peerConnection.connectionState === "connected") {
+      // Connected!
+      showPart(chatPrompt);
+    }
+  })
 
   // ALICE sent a message to BOB
   dataChannel.addEventListener("message", e => {
