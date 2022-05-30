@@ -123,6 +123,7 @@
     
     peerConnection.addEventListener("datachannel", ({ channel }) => {
       activeDataChannel = channel;
+      showPart(chatPrompt);
       activeDataChannel.addEventListener("message", e => {
         const data = JSON.parse(e.data)
         chatlog.innerHTML += `<span>THEM: ${data.message}</span><br/>`;
