@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>STUN-ONLY RTC</title>
+<title>miniWebRTC</title>
 
 <div id="createRoom">
   <h3>Create or join a room?</h3>
@@ -35,7 +35,7 @@
   <div id="chatlog" style="height:200px; overflow:auto; border:1px solid"></div>
   <br>
   <input type="text" id="messageTextBox" placeholder="Type your message here">
-  <button id="sendMessage">Send message</button>
+  <button onclick="sendMessage()">Send message</button>
 </div>
 
 <script>
@@ -48,13 +48,13 @@
   /** @type {RTCDataChannel | null} data channel */
   let activeDataChannel = null;
 
-  sendMessage.addEventListener("click", () => {
+  function sendMessage() {
     if (messageTextBox.value) {
-      activeDataChannel.send(messageTextBox.value);
-      chatlog.innerHTML += `ME: ${messageTextBox.value}<br>`;
+      activeDataChannel.send(JSON.stringify({ message: messageTextBox.value }));
+      chatlog.innerHTML += `<span>ME: ${messageTextBox.value}</span><br/>`;
       messageTextBox.value = "";
     }
-  })
+  }
   
   /**
    * Shows one of the 4 div elements in the webpage, and hides the rest.
@@ -96,8 +96,9 @@
     }, { once: true });
 
     // ALICE sent a message to BOB
-    dataChannel.addEventListener("message", ({ data }) => {
-      chatlog.innerHTML += `THEM: ${data}<br>`;
+    dataChannel.addEventListener("message", e => {
+      const data = JSON.parse(e.data)
+      chatlog.innerHTML += `<span>THEM: ${data.message}</span><br/>`;
       chatlog.scrollTop = chatlog.scrollHeight
     })
 
@@ -133,7 +134,7 @@
       showPart(chatPrompt);
       activeDataChannel.addEventListener("message", e => {
         const data = JSON.parse(e.data)
-        chatlog.innerHTML += `THEM: ${data.message}<br>`;
+        chatlog.innerHTML += `<span>THEM: ${data.message}</span><br/>`;
         chatlog.scrollTop = chatlog.scrollHeight
       })
     })
