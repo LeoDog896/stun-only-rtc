@@ -46,7 +46,7 @@ const peerConnection = new RTCPeerConnection(config)
   peerConnection.addEventListener("connectionstatechange", e => {
     if (peerConnection.connectionState === "connected") {
       // Connected!
-      showPart(chatPrompt);
+      dataChannel.send("Hello World!") // only accepts `string`
     }
   })
 
