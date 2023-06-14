@@ -1,17 +1,18 @@
 # stun-only-rtc
 
-Check it out: Open two tabs with https://leodog896.github.io/stun-only-rtc/ on both of them, and have one be BOB, the other be ALICE.
+Check it out: Open two tabs with https://leodog896.github.io/stun-only-rtc/ on both, and have one be BOB, and the other be ALICE.
 
 Cleanup of https://github.com/xem/miniWebRTC.
 
-Serverless* WebRTC. Enables browsers to commincate with each other without the need for a costly server.
+Serverless* WebRTC. It enables browsers to communicate with each other without the need for a costly server.
 
 * Uses STUN servers -- virtually free and hosted by various companies.
 
 ## Simple explanation
 * BOB: Create an offer (with ice candidates included)
 * BOB -> ALICE: Send the offer
-* ALICE -> BOB Receive answer
+* ALICE: Make answer from the offer
+* ALICE -> BOB: Send answer
 * Connected!
 
 ## Code explanation
@@ -32,12 +33,12 @@ const peerConnection = new RTCPeerConnection(config)
 
   peerConnection.addEventListener("icecandidate", ({ candidate }) => {
     if (candidate == null) {
-      // OFFER from bob. Send this to alice.
+      // OFFER from Bob. Send this to alice.
       console.log(JSON.stringify(peerConnection.localDescription));
     }
   })
 
-  // Run this function when bob has the answer from alice.
+  // Run this function when Bob has the answer from Alice.
   when("bob receives the answer", async (answer: string) => {
     const answerDesc = new RTCSessionDescription(JSON.parse(answer))
     await peerConnection.setRemoteDescription(answerDesc);
